@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Network</title>
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style type="text/css">
+    body {
+      margin: 0;
+    }
+
+    #mynetwork {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="mynetwork"></div>
+  <script type="text/javascript">
+    const rawNodes = [
+      ['UT', 91],
+      ['CP', 1569],
+      ['DP', 240],
+      ['UPC', 498],
+      ['CRC', 79],
+      ['RCM', 391],
+      ['ANQ', 146],
+      ['PCM', 115],
+      ['PPC', 62],
+      ['RF', 403],
+      ['CPC', 58],
+      ['RAM', 258],
+      ['FC', 338],
+      ['IO', 153],
+    ]
+
+    const rawEdges = [
+      ['1', 'UT', 'UT', 0.998],
+      ['2', 'CP', 'CP', 0.929],
+      ['3', 'CP', 'DP', 0.505],
+      ['4', 'CP', 'RAM', 0.203],
+      ['5', 'DP', 'CRC', 0.771],
+      ['6', 'DP', 'RCM', 0.93],
+      ['7', 'DP', 'PCM', 0.349],
+      ['8', 'UPC', 'UPC', 0.974],
+      ['9', 'CRC', 'UPC', 0.12],
+      ['10', 'CRC', 'CRC', 0.957],
+      ['11', 'CRC', 'PPC', 0.296],
+      ['12', 'RCM', 'RCM', 0.909],
+      ['13', 'RCM', 'ANQ', 0.249],
+      ['14', 'RCM', 'PCM', 0.536],
+      ['15', 'RCM', 'PPC', 0.509],
+      ['16', 'ANQ', 'ANQ', 0.954],
+      ['17', 'ANQ', 'PCM', 0.439],
+      ['18', 'ANQ', 'PPC', 0.525],
+      ['19', 'ANQ', 'RF', 0.103],
+      ['20', 'ANQ', 'FC', 0.552],
+      ['21', 'PCM', 'ANQ', 0.384],
+      ['22', 'PCM', 'PCM', 0.838],
+      ['23', 'PCM', 'PPC', 0.612],
+      ['24', 'PCM', 'RF', 0.483],
+      ['25', 'PCM', 'FC', 0.795],
+      ['26', 'PPC', 'ANQ', 0.446],
+      ['27', 'PPC', 'PCM', 0.862],
+      ['28', 'PPC', 'PPC', 0.907],
+      ['29', 'PPC', 'RF', 0.415],
+      ['30', 'PPC', 'CPC', 0.103],
+      ['31', 'PPC', 'FC', 0.566],
+      ['32', 'RF', 'ANQ', 0.103],
+      ['33', 'RF', 'PPC', 0.317],
+      ['34', 'RF', 'RF', 0.968],
+      ['35', 'RF', 'CPC', 0.858],
+      ['36', 'CPC', 'DP', 0.957],
+      ['37', 'CPC', 'CPC', 0.464],
+      ['38', 'RAM', 'CP', 0.266],
+      ['39', 'RAM', 'RAM', 0.902],
+      ['40', 'FC', 'PCM', 0.171],
+      ['41', 'FC', 'RF', 0.563],
+      ['42', 'FC', 'CPC', 0.436],
+      ['43', 'FC', 'FC', 0.977],
+      ['44', 'IO', 'IO', 0.997],
+    ]
+
+    const colors = ['#63b2ee', '#76da91', '#f8cb7f', '#f89588', '#7cd6cf', '#9192ab', '#7898e1']
+
+    const colorMap = {
+      'resource': '#63b2ee',
+      'codeEditing': '#76da91',
+      'chatGPT': '#f8cb7f',
+      'other': '#f89588',
+    }
+
+    const nodeClassMap = {
+      'UT': 'resource',
+      'RAM': 'resource',
+
+      'CP': 'codeEditing',
+      'DP': 'codeEditing',
+      'UPC': 'codeEditing',
+      'CRC': 'codeEditing',
+      'RCM': 'codeEditing',
+
+      'ANQ': 'chatGPT',
+      'PCM': 'chatGPT',
+      'PPC': 'chatGPT',
+      'RF': 'chatGPT',
+      'CPC': 'chatGPT',
+
+      'FC': 'other',
+      'IO': 'other',
+    }
+
+    function scaleFn(min, max, total, value) {
+      return value / total;
+    }
+
+    var nodes = new vis.DataSet(rawNodes.map(([label, size]) => ({
+      id: label,
+      label,
+      value: size,
+      shape: 'circle',
+      physics: false,
+      x: localStorage.getItem(label + '-x') || undefined,
+      y: localStorage.getItem(label + '-y') || undefined,
+      color: {
+        background: colorMap[nodeClassMap[label]],
+      },
+      scaling: {
+        customScalingFunction: scaleFn,
+        min: 20,
+        max: 200,
+        label: {
+          enabled: true,
+          max: 150,
+          min: 16
+        }
+      },
+    })))
+
+    var edges = new vis.DataSet(rawEdges.map(([id, from, to, value]) => ({
+      from,
+      to,
+      value,
+      color: colorMap[nodeClassMap[from]],
+      label: value.toFixed(2),
+      arrows: {
+        to: {
+          enabled: from !== to,
+          type: 'arrow'
+        },
+      }
+    })));
+
+    // create a network
+    var container = document.getElementById("mynetwork");
+    var data = {
+      nodes: nodes,
+      edges: edges,
+    };
+    var options = {};
+    var network = new vis.Network(container, data, options);
+
+    network.on('dragEnd', (params) => {
+      if (!params.nodes) return
+
+      const coords = network.getPositions()[params.nodes[0]]
+
+      localStorage.setItem(params.nodes[0] + '-x', coords.x)
+      localStorage.setItem(params.nodes[0] + '-y', coords.y)
+    })
+
+    // when user press 'c', clear localStorage
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'c') {
+        // confirm to clear
+        if (!confirm('确定要清除拖动节点的历史记录吗?')) return
+        localStorage.clear()
+        window.location.reload()
+      }
+    })
+  </script>
+</body>
+
+</html>
