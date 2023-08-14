@@ -143,7 +143,18 @@
       from,
       to,
       value,
-      color: colorMap[nodeClassMap[from]],
+      color: {
+        color: colorMap[nodeClassMap[from]],
+        opacity: 0.7,
+      },
+      selfReference: {
+        angle: -Math.PI / 4,
+      },
+      smooth: {
+        enabled: true,
+        type: 'straightCross',
+        roundness: 0.5
+      },
       label: String(value),
       arrows: {
         to: {
@@ -163,8 +174,7 @@
     var network = new vis.Network(container, data, options);
 
     network.on('dragEnd', (params) => {
-      if (!params.nodes) return
-
+      if (!params.nodes.length) return
       const coords = network.getPositions()[params.nodes[0]]
 
       localStorage.setItem(params.nodes[0] + '-x', coords.x)
